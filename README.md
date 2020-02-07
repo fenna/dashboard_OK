@@ -56,7 +56,7 @@ pip install -r requirements.txt
 
 **Step 4: running the program**  
   
- 
+Download a csv file from the hah.milieudefensie.nl dashboard to the projectfolder. 
 Execute the following command in the command-line:  
 ```console  
 python3 dashboard.py
