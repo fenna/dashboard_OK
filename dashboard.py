@@ -5,7 +5,7 @@ This program searches for csv files in the project directory and creates plots
 """
 
 __author__ = "F.Feenstra"
-__version__ = "0.3"
+__version__ = "0.4"
 
 
 #import needed libraries to run this program
@@ -19,27 +19,60 @@ import pydoc
 import yaml
 
 
+CATEGORY_NAMES = { 0: 'onbekend',
+                   1: 'helemaal oneens',
+                   2: 'oneens',
+                   3: 'nog oneens nog eens',
+                   4: 'eens',
+                   5: 'helemaal mee eens',
+                   6: '?'}
+
+def clean_file(f):
+    """
+    function that extracts only the 7 columns of the stellingen and
+    preprocess the values
+    -----
+    input: f: filename
+    output: df: dataframe (table)
+    """
+    df = pd.read_csv(f, delimiter = ';')
+    df = df.replace(r'^\s*$', 0, regex=True) #spaces are set to 0
+    df = df.replace(-1, 6, regex=True) # -1 is set to 6 (weet niet)
+    df = df.iloc[:,7:14] # use only the stellingen column
+    return df
+
+
+def setlabels(df):
+    """
+    Function that fills an array with 'stellingen' from the configfile
+    """
+    # read the config file
+    file = open('config.yml', 'r')
+    cfg = yaml.load(file, Loader=yaml.FullLoader)
+    # create an array questions from configfile
+    questions =[(cfg['stellingen'][i]) for i in range(1, 8)]
+    return questions
+
+
 def fill_array(df, colno):
-    """ 
+    """
     Function to fill an array y with the numbers of occurrence per category
     it uses parameters:
     --------
     df: dataframe from file
     colno: collumno of the dataframe (usally a survey question)
+    y: an array with all the counts per outcome in percentage
     """
-    # get all the values from a column, drop the empty ones
+    # get all the values from a column
     x = np.array(np.array(df.iloc[:,[colno]].dropna().astype(int)))
-    # initialize empty array for counts ['weet niet', 'helemaal oneens' ...'helemaal mee eens']
-    y = np.array([0,0,0,0,0,0]) 
     # get unique answers and amount per unique answers
     unique_elements, counts_elements = np.unique(x, return_counts=True)
     # compose array with amount per answer
+    y = np.array([0,0,0,0,0,0,0])
     for idx, i in enumerate(unique_elements):
         y[i] = counts_elements[idx]
-    # count all the non 1 - 5 to 'weet niet'
-    if sum(counts_elements) != len(df.index):
-        y[0] = len(df.index) - (sum(counts_elements[1:]))
-    return y
+    y_perc = np.array([i/y.sum()*100 for i in y])
+    return y_perc
 
 
 def survey(results, category_names):
@@ -53,13 +86,11 @@ def survey(results, category_names):
     category_names : list of str
         The category labels.
     """
+
     labels = list(results.keys())
     data = np.array(list(results.values()))
     data_cum = data.cumsum(axis=1)
-    
-    category_colors = plt.get_cmap('RdYlGn')(
-        # start color of 'helemaal oneens', end color 'helemaal eens'
-        np.linspace(-0.1, 0.9, data.shape[1])) 
+    category_colors = plt.get_cmap('RdYlGn')(np.linspace(0.1, 1.13, data.shape[1]))
 
     fig, ax = plt.subplots(figsize=(15, 5))
     ax.invert_yaxis()
@@ -69,15 +100,11 @@ def survey(results, category_names):
     for i, (colname, color) in enumerate(zip(category_names, category_colors)):
         widths = data[:, i]
         starts = data_cum[:, i] - widths
-        # display bars with 'weet niet'
-        if i == 0:
-            # need thicker axes? adap height
+        if i == 5 :  # display bars with 'weet niet'
             ax.barh(labels, widths, left=starts, height=0.5,
                     label=colname, color='grey')
             xcenters = starts + widths / 2
-        # display bars with ''helemaal oneens', 'oneens','nog oneens nog eens', 'eens', 'helemaal mee eens''  
         else:
-            # need thicker axes? adap height
             ax.barh(labels, widths, left=starts, height=0.5,
                     label=colname, color=color) # color is red to green
             xcenters = starts + widths / 2
@@ -87,44 +114,14 @@ def survey(results, category_names):
         for y, (x, c) in enumerate(zip(xcenters, widths)):
             if c != 0:
                 ax.text(x, y, str(int(c)), ha='center', va='center',color=text_color)
-    ax.legend(ncol=len(category_names), bbox_to_anchor=(0, 1),
-              loc='lower left', fontsize='small')
+
+    ax.legend(ncol=len(category_names), bbox_to_anchor=(0, 1),loc='lower left', fontsize='small')
     return fig, ax
-
-
-def clean_file(f):
-    """ 
-    function that cleans all the file and set unknown to 0 = 'weet niet' 
-    -----
-    input: f: filename
-    output: df: dataframe (table)
-    """
-    df = pd.read_csv(f, delimiter = ';')
-    df = df.replace(r'^\s*$', 0, regex=True) #spaces are set to 0 (weet niet)
-    df = df.replace(-1, 0, regex=True) # -1 is set to 0 (weet niet)
-    return df
-
-
-def question_setlabels(df):
-    """ 
-    Function that fills an array with collumnames and replaces the 
-    columname 7 .. 14 with 'stellingen' from the configfile
-    ------
-    dfcolumns.values.tolist(): list with table headers
-    questions: table with tableheaders and 'stellingen' (instead of 1..7)
-    """
-    questions = df.columns.values.tolist()
-    file = open('config.yml', 'r')
-    cfg = yaml.load(file, Loader=yaml.FullLoader)
-    # stellingen starts at column number 7
-    for i in range(7, 14):
-        questions[i] = (cfg['stellingen'][i-6])
-    return questions
 
 
 def main(args):
     """ main function that calls all the other functions"""
-    try: 
+    try:
         if len(args) == 1:
             # get all the csv files that are in the current directory
             files = [os.path.basename(x) for x in glob.glob("*.csv")]
@@ -133,10 +130,9 @@ def main(args):
         # create a figure for each file
         for f in files:
            df = clean_file(f)
-           questions = question_setlabels(df)
-           category_names = ['?','helemaal oneens', 'oneens',
-              'nog oneens nog eens', 'eens', 'helemaal mee eens']
-           results = {questions[i] : fill_array(df, i) for i in range(7, 14)}
+           questions = setlabels(df)
+           results = {questions[i] : fill_array(df, i)[1:] for i in range(0, 7)}
+           category_names = [CATEGORY_NAMES[i] for i in CATEGORY_NAMES][1:]
            fig, ax = survey(results, category_names)
            plt.tight_layout()
            plt.savefig(f[:-4])
@@ -152,13 +148,3 @@ def main(args):
 if __name__ == "__main__":
     exitcode = main(sys.argv)
     sys.exit(exitcode)
-
-
-
-
-
-
-
-
-
-
