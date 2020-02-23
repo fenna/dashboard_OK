@@ -66,7 +66,7 @@ python3 dashboard.py
 
 ### fill_array(df, colno)
 
-Function to fill an array y with the numbers of occurrence per category. This function only processes one column. For instance 1 'weet niet', 2 'mee oneens' and 100 'helemaal eens' results in y = [1, 0, 2, 0, 0, 100]. These arrays are used to fill the horizontal bar in the chart
+Function to fill an array y with the numbers of occurrence per category. This function only processes one column. These arrays are used to fill the horizontal bar in the chart
 
 ### survey(results, category_names)
 This funtion creates the graph. It uses the following parameters:
@@ -112,9 +112,9 @@ The program outputs a png file with the analysis for each csv file:
 
 ### Example output
 
-![picture](md_backend-surveys-04022020-04022020-8900-8941,9700-9747.png)  
+![picture](md_backend-surveys-11022020-11022020-8900-8941,9700-9747.png)  
 
-*Figure1: dashboard of gesprekken 2020 tot 04 february postcode-8900-8941,9700-9747*  
+*Figure1: dashboard of gesprekken 2020 tot 11 february postcode-8900-8941,9700-9747*  
 
 
 
