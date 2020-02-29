@@ -38,7 +38,8 @@ def clean_file(f):
     df = pd.read_csv(f, delimiter = ';')
     df = df.replace(r'^\s*$', 0, regex=True) #spaces are set to 0
     df = df.replace(-1, 6, regex=True) # -1 is set to 6 (weet niet)
-    df = df.iloc[:,7:14] # use only the stellingen column
+    # colums aanpassen
+    df = df[['1','2','3','4','5','6','7']] # use only the stellingen column
     return df
 
 
@@ -136,9 +137,9 @@ def main(args):
            fig, ax = survey(results, category_names)
            plt.tight_layout()
            plt.savefig(f[:-4])
-    except:
+    #except:
         # print documentation in case of error
-        print(pydoc.help(__name__))
+        # print(pydoc.help(__name__))
     finally:
         print(f"programma heeft {len(files)} figuren gemaakt van bestanden: {files}")
 
